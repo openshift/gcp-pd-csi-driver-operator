@@ -75,6 +75,8 @@ apiVersion: apps/v1
 metadata:
   name: gcp-pd-csi-driver-controller
   namespace: openshift-cluster-csi-drivers
+  annotations:
+    config.openshift.io/inject-proxy: csi-driver
 spec:
   serviceName: gcp-pd-csi-driver-controller
   replicas: 1
@@ -250,6 +252,8 @@ apiVersion: apps/v1
 metadata:
   name: gcp-pd-csi-driver-node
   namespace: openshift-cluster-csi-drivers
+  annotations:
+    config.openshift.io/inject-proxy: csi-driver
 spec:
   selector:
     matchLabels:
