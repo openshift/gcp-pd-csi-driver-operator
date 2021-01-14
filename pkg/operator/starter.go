@@ -27,12 +27,14 @@ const (
 	defaultNamespace = "openshift-cluster-csi-drivers"
 	operatorName     = "gcp-pd-csi-driver-operator"
 	operandName      = "gcp-pd-csi-driver"
+	secretName       = "gcp-pd-cloud-credentials"
 )
 
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
-	// Create core clientset and informer
+	// Create core clientset and informers
 	kubeClient := kubeclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
+	secretInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().Secrets()
 
 	// Create config clientset and informer. This is used to get the cluster ID
 	configClient := configclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
@@ -83,6 +85,11 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
 		configInformers,
 		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
+		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(
+			defaultNamespace,
+			secretName,
+			secretInformer,
+		),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
 		generated.MustAsset,
@@ -90,7 +97,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
-	)
+	).WithExtraInformers(secretInformer.Informer())
 
 	if err != nil {
 		return err
