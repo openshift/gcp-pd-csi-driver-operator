@@ -78,7 +78,6 @@ metadata:
   annotations:
     config.openshift.io/inject-proxy: csi-driver
 spec:
-  serviceName: gcp-pd-csi-driver-controller
   replicas: 1
   selector:
     matchLabels:
