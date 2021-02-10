@@ -105,6 +105,7 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=${LOG_LEVEL}
+            - --extra-labels=${CLUSTER_ID}=owned
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: "/etc/cloud-sa/service_account.json"
