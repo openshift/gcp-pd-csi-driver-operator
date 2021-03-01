@@ -283,6 +283,10 @@ spec:
   selector:
     matchLabels:
       app: gcp-pd-csi-driver-node
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 10%
   template:
     metadata:
       labels:
