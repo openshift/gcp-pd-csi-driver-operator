@@ -60,6 +60,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		generated.Asset,
 		[]string{
 			"storageclass.yaml",
+			"csidriver.yaml",
 			"controller_sa.yaml",
 			"node_sa.yaml",
 			"rbac/attacher_role.yaml",
