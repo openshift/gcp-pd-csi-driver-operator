@@ -24,6 +24,7 @@ import (
 
 const (
 	// Operand and operator run in the same namespace
+
 	defaultNamespace = "openshift-cluster-csi-drivers"
 	operatorName     = "gcp-pd-csi-driver-operator"
 	operandName      = "gcp-pd-csi-driver"
@@ -74,6 +75,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 			"rbac/resizer_binding.yaml",
 			"rbac/snapshotter_role.yaml",
 			"rbac/snapshotter_binding.yaml",
+			"service.yaml",
 		},
 	).WithCSIConfigObserverController(
 		"GCPPDDriverCSIConfigObserverController",

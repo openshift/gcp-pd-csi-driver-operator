@@ -17,6 +17,8 @@
 // assets/rbac/snapshotter_binding.yaml
 // assets/rbac/snapshotter_role.yaml
 // assets/role.yaml
+// assets/service.yaml
+// assets/servicemonitor.yaml
 // assets/storageclass.yaml
 package generated
 
@@ -104,6 +106,7 @@ spec:
           image: ${DRIVER_IMAGE}
           args:
             - --endpoint=$(CSI_ENDPOINT)
+            # - --http-endpoint=:22015
             - --logtostderr
             - --v=${LOG_LEVEL}
             - --extra-labels=kubernetes-io-cluster-${CLUSTER_ID}=owned
@@ -134,6 +137,7 @@ spec:
             - --default-fstype=ext4
             - --feature-gates=Topology=true
             - --extra-create-metadata=true
+            - --http-endpoint=:8444
             - --v=${LOG_LEVEL}
           env:
             - name: ADDRESS
@@ -145,10 +149,14 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          ports:
+          - containerPort: 8444
+            name: provisioner
         - name: csi-attacher
           image: ${ATTACHER_IMAGE}
           args:
             - --csi-address=$(ADDRESS)
+            - --metrics-path=/metrics
             - --v=${LOG_LEVEL}
           env:
             - name: ADDRESS
@@ -164,6 +172,7 @@ spec:
           image: ${RESIZER_IMAGE}
           args:
             - --csi-address=$(ADDRESS)
+            - --metrics-path=/metrics
             - --v=${LOG_LEVEL}
           env:
             - name: ADDRESS
@@ -179,6 +188,7 @@ spec:
           image: ${SNAPSHOTTER_IMAGE}
           args:
             - --csi-address=$(ADDRESS)
+            - --metrics-path=/metrics
             - --v=${LOG_LEVEL}
           env:
           - name: ADDRESS
@@ -194,6 +204,7 @@ spec:
           image: ${LIVENESS_PROBE_IMAGE}
           args:
             - --csi-address=/csi/csi.sock
+            - --metrics-path=/metrics
             - --probe-timeout=3s
             - --health-port=10301
           volumeMounts:
@@ -882,6 +893,75 @@ func roleYaml() (*asset, error) {
 	return a, nil
 }
 
+var _serviceYaml = []byte(`apiVersion: v1
+kind: Service
+metadata:
+  # annotations:
+  #   service.alpha.openshift.io/serving-cert-secret-name: gcp-pd-csi-driver-controller-serving-cert
+  labels:
+    app: gcp-pd-csi-driver-controller-metrics
+  name: gcp-pd-csi-driver-controller-metrics
+  namespace: openshift-cluster-csi-drivers
+spec:
+  ports:
+  - name: provisioner
+    port: 8444
+    protocol: TCP
+    targetPort: 8444
+  selector:
+    name: gcp-pd-csi-driver-controller
+  sessionAffinity: None
+  type: ClusterIP
+`)
+
+func serviceYamlBytes() ([]byte, error) {
+	return _serviceYaml, nil
+}
+
+func serviceYaml() (*asset, error) {
+	bytes, err := serviceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _servicemonitorYaml = []byte(`apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gcp-pd-csi-driver-controller-monitor
+  namespace: openshift-cluster-csi-drivers
+spec:
+  endpoints:
+  # - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  - interval: 30s
+    path: /metrics
+    port: provisioner
+    scheme: http
+  jobLabel: component
+  selector:
+    matchLabels:
+      app: gcp-pd-csi-driver-controller-metrics
+`)
+
+func servicemonitorYamlBytes() ([]byte, error) {
+	return _servicemonitorYaml, nil
+}
+
+func servicemonitorYaml() (*asset, error) {
+	bytes, err := servicemonitorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "servicemonitor.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _storageclassYaml = []byte(`apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -979,6 +1059,8 @@ var _bindata = map[string]func() (*asset, error){
 	"rbac/snapshotter_binding.yaml":           rbacSnapshotter_bindingYaml,
 	"rbac/snapshotter_role.yaml":              rbacSnapshotter_roleYaml,
 	"role.yaml":                               roleYaml,
+	"service.yaml":                            serviceYaml,
+	"servicemonitor.yaml":                     servicemonitorYaml,
 	"storageclass.yaml":                       storageclassYaml,
 }
 
@@ -1041,8 +1123,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"snapshotter_binding.yaml":           {rbacSnapshotter_bindingYaml, map[string]*bintree{}},
 		"snapshotter_role.yaml":              {rbacSnapshotter_roleYaml, map[string]*bintree{}},
 	}},
-	"role.yaml":         {roleYaml, map[string]*bintree{}},
-	"storageclass.yaml": {storageclassYaml, map[string]*bintree{}},
+	"role.yaml":           {roleYaml, map[string]*bintree{}},
+	"service.yaml":        {serviceYaml, map[string]*bintree{}},
+	"servicemonitor.yaml": {servicemonitorYaml, map[string]*bintree{}},
+	"storageclass.yaml":   {storageclassYaml, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory

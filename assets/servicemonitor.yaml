@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gcp-pd-csi-driver-controller-monitor
+  namespace: openshift-cluster-csi-drivers
+spec:
+  endpoints:
+  # - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  - interval: 30s
+    path: /metrics
+    port: provisioner
+    scheme: http
+  jobLabel: component
+  selector:
+    matchLabels:
+      app: gcp-pd-csi-driver-controller-metrics

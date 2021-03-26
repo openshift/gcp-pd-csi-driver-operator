@@ -31,6 +31,7 @@ spec:
           image: ${DRIVER_IMAGE}
           args:
             - --endpoint=$(CSI_ENDPOINT)
+            # - --http-endpoint=:22015
             - --logtostderr
             - --v=${LOG_LEVEL}
             - --extra-labels=kubernetes-io-cluster-${CLUSTER_ID}=owned
@@ -61,6 +62,7 @@ spec:
             - --default-fstype=ext4
             - --feature-gates=Topology=true
             - --extra-create-metadata=true
+            - --http-endpoint=:8444
             - --v=${LOG_LEVEL}
           env:
             - name: ADDRESS
@@ -72,10 +74,14 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          ports:
+          - containerPort: 8444
+            name: provisioner
         - name: csi-attacher
           image: ${ATTACHER_IMAGE}
           args:
             - --csi-address=$(ADDRESS)
+            - --metrics-path=/metrics
             - --v=${LOG_LEVEL}
           env:
             - name: ADDRESS
@@ -91,6 +97,7 @@ spec:
           image: ${RESIZER_IMAGE}
           args:
             - --csi-address=$(ADDRESS)
+            - --metrics-path=/metrics
             - --v=${LOG_LEVEL}
           env:
             - name: ADDRESS
@@ -106,6 +113,7 @@ spec:
           image: ${SNAPSHOTTER_IMAGE}
           args:
             - --csi-address=$(ADDRESS)
+            - --metrics-path=/metrics
             - --v=${LOG_LEVEL}
           env:
           - name: ADDRESS
@@ -121,6 +129,7 @@ spec:
           image: ${LIVENESS_PROBE_IMAGE}
           args:
             - --csi-address=/csi/csi.sock
+            - --metrics-path=/metrics
             - --probe-timeout=3s
             - --health-port=10301
           volumeMounts:
