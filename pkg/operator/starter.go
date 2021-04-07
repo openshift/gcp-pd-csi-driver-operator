@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/client-go/dynamic"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -47,6 +48,11 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		return err
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(controllerConfig.KubeConfig)
+	if err != nil {
+		return err
+	}
+
 	csiControllerSet := csicontrollerset.NewCSIControllerSet(
 		operatorClient,
 		controllerConfig.EventRecorder,
@@ -63,6 +69,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 			"csidriver.yaml",
 			"controller_sa.yaml",
 			"node_sa.yaml",
+			"service.yaml",
 			"rbac/attacher_role.yaml",
 			"rbac/attacher_binding.yaml",
 			"rbac/privileged_role.yaml",
@@ -74,6 +81,10 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 			"rbac/resizer_binding.yaml",
 			"rbac/snapshotter_role.yaml",
 			"rbac/snapshotter_binding.yaml",
+			"rbac/kube_rbac_proxy_role.yaml",
+			"rbac/kube_rbac_proxy_binding.yaml",
+			"rbac/prometheus_role.yaml",
+			"rbac/prometheus_rolebinding.yaml",
 		},
 	).WithCSIConfigObserverController(
 		"GCPPDDriverCSIConfigObserverController",
@@ -98,6 +109,11 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
+	).WithServiceMonitorController(
+		"GCPPDDriverServiceMonitorController",
+		dynamicClient,
+		generated.Asset,
+		"servicemonitor.yaml",
 	).WithExtraInformers(secretInformer.Informer())
 
 	if err != nil {
