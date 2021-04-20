@@ -26,3 +26,5 @@ DriverInfo:
     controllerExpansion: true
     nodeExpansion: true
     snapshotDataSource: true
+    topology: true
+    multipods: true
