@@ -14,6 +14,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivercontrollerservicecontroller"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
@@ -36,10 +37,12 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	kubeClient := kubeclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
 	secretInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().Secrets()
+	nodeInformer := kubeInformersForNamespaces.InformersFor("").Core().V1().Nodes()
 
 	// Create config clientset and informer. This is used to get the cluster ID
 	configClient := configclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	configInformers := configinformers.NewSharedInformerFactory(configClient, 20*time.Minute)
+	infraInformer := configInformers.Config().V1().Infrastructures()
 
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
 	gvr := opv1.SchemeGroupVersion.WithResource("clustercsidrivers")
@@ -62,10 +65,12 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	).WithStaticResourcesController(
 		"GCPPDDriverStaticResourcesController",
 		kubeClient,
+		dynamicClient,
 		kubeInformersForNamespaces,
 		generated.Asset,
 		[]string{
 			"storageclass.yaml",
+			"volumesnapshotclass.yaml",
 			"csidriver.yaml",
 			"controller_sa.yaml",
 			"node_sa.yaml",
@@ -96,6 +101,11 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
 		configInformers,
+		[]factory.Informer{
+			nodeInformer.Informer(),
+			infraInformer.Informer(),
+			secretInformer.Informer(),
+		},
 		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
 		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(
 			defaultNamespace,
@@ -108,13 +118,14 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		"node.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
+		nil, // Node doesn't need to react to any changes
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
 	).WithServiceMonitorController(
 		"GCPPDDriverServiceMonitorController",
 		dynamicClient,
 		generated.Asset,
 		"servicemonitor.yaml",
-	).WithExtraInformers(secretInformer.Informer())
+	)
 
 	if err != nil {
 		return err

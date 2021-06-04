@@ -23,6 +23,7 @@
 // assets/service.yaml
 // assets/servicemonitor.yaml
 // assets/storageclass.yaml
+// assets/volumesnapshotclass.yaml
 package generated
 
 import (
@@ -1205,6 +1206,30 @@ func storageclassYaml() (*asset, error) {
 	return a, nil
 }
 
+var _volumesnapshotclassYaml = []byte(`apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-gce-pd-vsc
+  annotations:
+    snapshot.storage.kubernetes.io/is-default-class: "true"
+driver: pd.csi.storage.gke.io
+deletionPolicy: Delete`)
+
+func volumesnapshotclassYamlBytes() ([]byte, error) {
+	return _volumesnapshotclassYaml, nil
+}
+
+func volumesnapshotclassYaml() (*asset, error) {
+	bytes, err := volumesnapshotclassYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "volumesnapshotclass.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -1280,6 +1305,7 @@ var _bindata = map[string]func() (*asset, error){
 	"service.yaml":                            serviceYaml,
 	"servicemonitor.yaml":                     servicemonitorYaml,
 	"storageclass.yaml":                       storageclassYaml,
+	"volumesnapshotclass.yaml":                volumesnapshotclassYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -1345,9 +1371,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"snapshotter_binding.yaml":           {rbacSnapshotter_bindingYaml, map[string]*bintree{}},
 		"snapshotter_role.yaml":              {rbacSnapshotter_roleYaml, map[string]*bintree{}},
 	}},
-	"service.yaml":        {serviceYaml, map[string]*bintree{}},
-	"servicemonitor.yaml": {servicemonitorYaml, map[string]*bintree{}},
-	"storageclass.yaml":   {storageclassYaml, map[string]*bintree{}},
+	"service.yaml":             {serviceYaml, map[string]*bintree{}},
+	"servicemonitor.yaml":      {servicemonitorYaml, map[string]*bintree{}},
+	"storageclass.yaml":        {storageclassYaml, map[string]*bintree{}},
+	"volumesnapshotclass.yaml": {volumesnapshotclassYaml, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory
