@@ -2,6 +2,7 @@ package csicontrollerset
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,6 +16,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/csi/csiconfigobservercontroller"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivercontrollerservicecontroller"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
+	"github.com/openshift/library-go/pkg/operator/deploymentcontroller"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/loglevel"
 	"github.com/openshift/library-go/pkg/operator/management"
@@ -101,11 +103,14 @@ func (c *CSIControllerSet) WithStaticResourcesController(
 func (c *CSIControllerSet) WithCredentialsRequestController(
 	name string,
 	operandNamespace string,
-	assetFunc func(string) []byte,
+	assetFunc resourceapply.AssetFunc,
 	file string,
 	dynamicClient dynamic.Interface,
 ) *CSIControllerSet {
-	manifestFile := assetFunc(file)
+	manifestFile, err := assetFunc(file)
+	if err != nil {
+		panic(fmt.Sprintf("asset: Asset(%v): %v", file, err))
+	}
 	c.credentialsRequestController = credentialsrequestcontroller.NewCredentialsRequestController(
 		name,
 		operandNamespace,
@@ -132,15 +137,18 @@ func (c *CSIControllerSet) WithCSIConfigObserverController(
 
 func (c *CSIControllerSet) WithCSIDriverControllerService(
 	name string,
-	assetFunc func(string) []byte,
+	assetFunc resourceapply.AssetFunc,
 	file string,
 	kubeClient kubernetes.Interface,
 	namespacedInformerFactory informers.SharedInformerFactory,
 	configInformer configinformers.SharedInformerFactory,
 	optionalInformers []factory.Informer,
-	optionalDeploymentHooks ...csidrivercontrollerservicecontroller.DeploymentHookFunc,
+	optionalDeploymentHooks ...deploymentcontroller.DeploymentHookFunc,
 ) *CSIControllerSet {
-	manifestFile := assetFunc(file)
+	manifestFile, err := assetFunc(file)
+	if err != nil {
+		panic(fmt.Sprintf("asset: Asset(%v): %v", file, err))
+	}
 	c.csiDriverControllerServiceController = csidrivercontrollerservicecontroller.NewCSIDriverControllerServiceController(
 		name,
 		manifestFile,
@@ -157,14 +165,17 @@ func (c *CSIControllerSet) WithCSIDriverControllerService(
 
 func (c *CSIControllerSet) WithCSIDriverNodeService(
 	name string,
-	assetFunc func(string) []byte,
+	assetFunc resourceapply.AssetFunc,
 	file string,
 	kubeClient kubernetes.Interface,
 	namespacedInformerFactory informers.SharedInformerFactory,
 	optionalInformers []factory.Informer,
 	optionalDaemonSetHooks ...csidrivernodeservicecontroller.DaemonSetHookFunc,
 ) *CSIControllerSet {
-	manifestFile := assetFunc(file)
+	manifestFile, err := assetFunc(file)
+	if err != nil {
+		panic(fmt.Sprintf("asset: Asset(%v): %v", file, err))
+	}
 	c.csiDriverNodeServiceController = csidrivernodeservicecontroller.NewCSIDriverNodeServiceController(
 		name,
 		manifestFile,
