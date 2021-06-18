@@ -13,6 +13,7 @@ import (
 	opv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
+	"github.com/openshift/gcp-pd-csi-driver-operator/assets"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
@@ -20,8 +21,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
 	goc "github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
-	"github.com/openshift/gcp-pd-csi-driver-operator/pkg/generated"
 )
 
 const (
@@ -67,7 +66,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeClient,
 		dynamicClient,
 		kubeInformersForNamespaces,
-		generated.Asset,
+		assets.ReadFile,
 		[]string{
 			"storageclass.yaml",
 			"volumesnapshotclass.yaml",
@@ -96,7 +95,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		configInformers,
 	).WithCSIDriverControllerService(
 		"GCPPDDriverControllerServiceController",
-		generated.MustAsset,
+		assets.ReadFile,
 		"controller.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
@@ -114,7 +113,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
-		generated.MustAsset,
+		assets.ReadFile,
 		"node.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
@@ -123,7 +122,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	).WithServiceMonitorController(
 		"GCPPDDriverServiceMonitorController",
 		dynamicClient,
-		generated.Asset,
+		assets.ReadFile,
 		"servicemonitor.yaml",
 	)
 
