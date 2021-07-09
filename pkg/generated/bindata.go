@@ -130,6 +130,9 @@ spec:
             - name: cloud-sa-volume
               readOnly: true
               mountPath: "/etc/cloud-sa"
+            - name: bound-sa-token
+              mountPath: /var/run/secrets/openshift/serviceaccount
+              readOnly: true
           resources:
             requests:
               memory: 50Mi
@@ -310,6 +313,14 @@ spec:
         - name: metrics-serving-cert
           secret:
             secretName: gcp-pd-csi-driver-controller-metrics-serving-cert
+        # This service account token can be used to provide identity outside the cluster.
+        # For example, this token can be used to authenticate with GCP using workload identity.
+        - name: bound-sa-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: token
+                audience: openshift
 `)
 
 func controllerYamlBytes() ([]byte, error) {
