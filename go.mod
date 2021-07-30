@@ -3,7 +3,6 @@ module github.com/openshift/gcp-pd-csi-driver-operator
 go 1.16
 
 require (
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/openshift/api v0.0.0-20210730095913-85e1d547cdee
 	github.com/openshift/build-machinery-go v0.0.0-20210712174854-1bb7fd1518d3
 	github.com/openshift/client-go v0.0.0-20210730113412-1811c1b3fc0e
