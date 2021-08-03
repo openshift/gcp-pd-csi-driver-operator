@@ -112,6 +112,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 			secretName,
 			secretInformer,
 		),
+		csidrivercontrollerservicecontroller.WithReplicasHook(nodeInformer.Lister()),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
 		assets.ReadFile,
