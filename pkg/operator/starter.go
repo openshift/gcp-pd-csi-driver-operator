@@ -25,10 +25,11 @@ import (
 
 const (
 	// Operand and operator run in the same namespace
-	defaultNamespace = "openshift-cluster-csi-drivers"
-	operatorName     = "gcp-pd-csi-driver-operator"
-	operandName      = "gcp-pd-csi-driver"
-	secretName       = "gcp-pd-cloud-credentials"
+	defaultNamespace   = "openshift-cluster-csi-drivers"
+	operatorName       = "gcp-pd-csi-driver-operator"
+	operandName        = "gcp-pd-csi-driver"
+	secretName         = "gcp-pd-cloud-credentials"
+	trustedCAConfigMap = "gcp-pd-csi-driver-trusted-ca-bundle"
 )
 
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
@@ -36,6 +37,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	kubeClient := kubeclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
 	secretInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().Secrets()
+	configMapInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().ConfigMaps()
 	nodeInformer := kubeInformersForNamespaces.InformersFor("").Core().V1().Nodes()
 
 	// Create config clientset and informer. This is used to get the cluster ID
@@ -75,6 +77,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 			"controller_pdb.yaml",
 			"node_sa.yaml",
 			"service.yaml",
+			"cabundle_cm.yaml",
 			"rbac/attacher_role.yaml",
 			"rbac/attacher_binding.yaml",
 			"rbac/privileged_role.yaml",
@@ -105,8 +108,14 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 			nodeInformer.Informer(),
 			infraInformer.Informer(),
 			secretInformer.Informer(),
+			configMapInformer.Informer(),
 		},
 		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
+		csidrivercontrollerservicecontroller.WithCABundleDeploymentHook(
+			defaultNamespace,
+			trustedCAConfigMap,
+			configMapInformer,
+		),
 		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(
 			defaultNamespace,
 			secretName,
@@ -119,8 +128,13 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		"node.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
-		nil, // Node doesn't need to react to any changes
+		[]factory.Informer{configMapInformer.Informer()},
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
+		csidrivernodeservicecontroller.WithCABundleDaemonSetHook(
+			defaultNamespace,
+			trustedCAConfigMap,
+			configMapInformer,
+		),
 	).WithServiceMonitorController(
 		"GCPPDDriverServiceMonitorController",
 		dynamicClient,
