@@ -1,5 +1,5 @@
 StorageClass:
-  FromExistingClassName: standard-csi
+  FromExistingClassName: ssd-csi
 SnapshotClass:
   FromName: true
 DriverInfo:
