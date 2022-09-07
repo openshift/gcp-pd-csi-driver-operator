@@ -70,7 +70,6 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeInformersForNamespaces,
 		assets.ReadFile,
 		[]string{
-			"storageclass.yaml",
 			"storageclass_ssd.yaml",
 			"volumesnapshotclass.yaml",
 			"csidriver.yaml",
@@ -141,6 +140,12 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		dynamicClient,
 		assets.ReadFile,
 		"servicemonitor.yaml",
+	).WithStorageClassController(
+		"GCPPDDriverStorageClassController",
+		assets.ReadFile,
+		"storageclass.yaml",
+		kubeClient,
+		kubeInformersForNamespaces.InformersFor(""),
 	)
 
 	if err != nil {
