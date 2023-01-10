@@ -15,6 +15,8 @@ import (
 	opv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
+	opclient "github.com/openshift/client-go/operator/clientset/versioned"
+	opinformers "github.com/openshift/client-go/operator/informers/externalversions"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
@@ -33,6 +35,7 @@ const (
 	operandName        = "gcp-pd-csi-driver"
 	secretName         = "gcp-pd-cloud-credentials"
 	trustedCAConfigMap = "gcp-pd-csi-driver-trusted-ca-bundle"
+	resync             = 20 * time.Minute
 )
 
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
@@ -45,7 +48,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 
 	// Create config clientset and informer. This is used to get the cluster ID
 	configClient := configclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
-	configInformers := configinformers.NewSharedInformerFactory(configClient, 20*time.Minute)
+	configInformers := configinformers.NewSharedInformerFactory(configClient, resync)
 	infraInformer := configInformers.Config().V1().Infrastructures()
 
 	apiExtClient, err := apiextclient.NewForConfig(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
@@ -65,6 +68,13 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		return err
 	}
 
+	// operator.openshift.io client, used for ClusterCSIDriver
+	operatorClientSet, err := opclient.NewForConfig(controllerConfig.KubeConfig)
+	if err != nil {
+		return err
+	}
+	operatorInformers := opinformers.NewSharedInformerFactory(operatorClientSet, resync)
+
 	csiControllerSet := csicontrollerset.NewCSIControllerSet(
 		operatorClient,
 		controllerConfig.EventRecorder,
@@ -78,7 +88,6 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeInformersForNamespaces,
 		assets.ReadFile,
 		[]string{
-			"storageclass_ssd.yaml",
 			"csidriver.yaml",
 			"controller_sa.yaml",
 			"controller_pdb.yaml",
@@ -169,9 +178,13 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	).WithStorageClassController(
 		"GCPPDDriverStorageClassController",
 		assets.ReadFile,
-		"storageclass.yaml",
+		[]string{
+			"storageclass.yaml",
+			"storageclass_ssd.yaml",
+		},
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(""),
+		operatorInformers,
 	)
 
 	if err != nil {
@@ -182,6 +195,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	go kubeInformersForNamespaces.Start(ctx.Done())
 	go dynamicInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
+	go operatorInformers.Start(ctx.Done())
 
 	klog.Info("Starting controllerset")
 	go csiControllerSet.Run(ctx, 1)
