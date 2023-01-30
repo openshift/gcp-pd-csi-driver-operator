@@ -1,6 +1,6 @@
 module github.com/openshift/gcp-pd-csi-driver-operator
 
-go 1.18
+go 1.19
 
 require (
 	github.com/openshift/api v0.0.0-20220919112502-5eaf4250c423
