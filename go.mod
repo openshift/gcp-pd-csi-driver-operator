@@ -3,12 +3,14 @@ module github.com/openshift/gcp-pd-csi-driver-operator
 go 1.19
 
 require (
-	github.com/openshift/api v0.0.0-20230120195050-6ba31fa438f2
+	github.com/google/go-cmp v0.5.9
+	github.com/openshift/api v0.0.0-20230228142948-d170fcdc0fa6
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/client-go v0.0.0-20230120202327-72f107311084
 	github.com/openshift/library-go v0.0.0-20230130232623-47904dd9ff5a
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.0
+	k8s.io/api v0.26.1
 	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
@@ -41,7 +43,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/cel-go v0.12.6 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
@@ -96,7 +97,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.26.1 // indirect
 	k8s.io/apiserver v0.26.1 // indirect
 	k8s.io/kms v0.26.1 // indirect
 	k8s.io/kube-aggregator v0.26.1 // indirect
