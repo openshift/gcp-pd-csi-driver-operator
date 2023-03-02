@@ -36,6 +36,9 @@ const (
 	secretName         = "gcp-pd-cloud-credentials"
 	trustedCAConfigMap = "gcp-pd-csi-driver-trusted-ca-bundle"
 	resync             = 20 * time.Minute
+
+	diskEncryptionKMSKey  = "disk-encryption-kms-key"
+	defaultKMSKeyLocation = "global"
 )
 
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
@@ -185,6 +188,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(""),
 		operatorInformers,
+		getKMSKeyHook(operatorInformers.Operator().V1().ClusterCSIDrivers().Lister()),
 	)
 
 	if err != nil {
