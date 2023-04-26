@@ -33,9 +33,11 @@ const (
 	defaultNamespace   = "openshift-cluster-csi-drivers"
 	operatorName       = "gcp-pd-csi-driver-operator"
 	operandName        = "gcp-pd-csi-driver"
-	secretName         = "gcp-pd-cloud-credentials"
 	trustedCAConfigMap = "gcp-pd-csi-driver-trusted-ca-bundle"
 	resync             = 20 * time.Minute
+
+	cloudCredSecretName   = "gcp-pd-cloud-credentials"
+	metricsCertSecretName = "gcp-pd-csi-driver-controller-metrics-serving-cert"
 
 	diskEncryptionKMSKey  = "disk-encryption-kms-key"
 	defaultKMSKeyLocation = "global"
@@ -156,7 +158,12 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		),
 		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(
 			defaultNamespace,
-			secretName,
+			cloudCredSecretName,
+			secretInformer,
+		),
+		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(
+			defaultNamespace,
+			metricsCertSecretName,
 			secretInformer,
 		),
 		csidrivercontrollerservicecontroller.WithReplicasHook(nodeInformer.Lister()),
