@@ -30,3 +30,5 @@ DriverInfo:
     topology: true
     multipods: true
     multiplePVsSameID: true
+Timeouts:
+  DataSourceProvision: 10m
