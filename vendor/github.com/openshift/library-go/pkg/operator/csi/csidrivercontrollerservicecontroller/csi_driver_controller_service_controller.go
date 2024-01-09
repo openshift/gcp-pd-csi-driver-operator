@@ -1,12 +1,17 @@
 package csidrivercontrollerservicecontroller
 
 import (
+	"context"
+	"fmt"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/config/leaderelection"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsinformersv1 "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
+	op "github.com/openshift/gcp-pd-csi-driver-operator/pkg/operator"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	dc "github.com/openshift/library-go/pkg/operator/deploymentcontroller"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -84,5 +89,25 @@ func NewCSIDriverControllerServiceController(
 	var deploymentHooks []dc.DeploymentHookFunc
 	deploymentHooks = append(deploymentHooks, WithControlPlaneTopologyHook(configInformer))
 	deploymentHooks = append(deploymentHooks, optionalDeploymentHooks...)
-	return dc.NewDeploymentController(name, manifest, recorder, operatorClient, kubeClient, deployInformer, optionalInformers, optionalManifestHooks, deploymentHooks...)
+	return dc.NewDeploymentController(
+		name, manifest, recorder, operatorClient, kubeClient, deployInformer, optionalInformers, optionalManifestHooks, deploymentHooks...,
+	).WithChecks(
+		secretsCheckFunc(kubeClient),
+	)
+}
+
+func secretsCheckFunc(
+	c kubernetes.Interface,
+) dc.CustomCheckFunc {
+	namespace := op.DefaultNamespace
+	name := op.CloudCredSecretName
+
+	return func() (bool, string) {
+		klog.V(6).Infof("Checking for secret %s/%s", namespace, name)
+		_, err := c.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Sprintf("Required secret was not found in namespace %s: %v Hint: make sure Cloud Credential Operator is running.", namespace, err)
+		}
+		return true, fmt.Sprintf("Secret %s/%s found", namespace, name)
+	}
 }

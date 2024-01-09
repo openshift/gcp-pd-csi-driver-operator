@@ -30,6 +30,8 @@ type DeploymentHookFunc func(*opv1.OperatorSpec, *appsv1.Deployment) error
 // The hook must not modify the original manifest!
 type ManifestHookFunc func(*opv1.OperatorSpec, []byte) ([]byte, error)
 
+type CustomCheckFunc func() (bool, string)
+
 // DeploymentController is a generic controller that manages a deployment.
 //
 // This controller supports removable operands, as configured in pkg/operator/management.
@@ -57,6 +59,12 @@ type DeploymentController struct {
 	// fails indicating the ordinal position of the failed function.
 	// Also, in that scenario the Degraded status is set to True.
 	optionalDeploymentHooks []DeploymentHookFunc
+
+	factory *factory.Factory
+
+	recorder events.Recorder
+
+	checks []CustomCheckFunc
 }
 
 func NewDeploymentController(
@@ -69,7 +77,7 @@ func NewDeploymentController(
 	optionalInformers []factory.Informer,
 	optionalManifestHooks []ManifestHookFunc,
 	optionalDeploymentHooks ...DeploymentHookFunc,
-) factory.Controller {
+) *DeploymentController {
 	c := &DeploymentController{
 		name:                    name,
 		manifest:                manifest,
@@ -78,6 +86,7 @@ func NewDeploymentController(
 		deployInformer:          deployInformer,
 		optionalManifestHooks:   optionalManifestHooks,
 		optionalDeploymentHooks: optionalDeploymentHooks,
+		recorder:                recorder,
 	}
 
 	informers := append(
@@ -86,25 +95,41 @@ func NewDeploymentController(
 		deployInformer.Informer(),
 	)
 
-	return factory.New().WithInformers(
+	c.factory = factory.New().WithInformers(
 		informers...,
-	).WithSync(
-		c.sync,
 	).ResyncEvery(
 		time.Minute,
 	).WithSyncDegradedOnError(
 		operatorClient,
-	).ToController(
-		c.name,
-		recorder.WithComponentSuffix(strings.ToLower(name)+"-deployment-controller-"),
 	)
+
+	return c
+}
+
+func (c *DeploymentController) Run(ctx context.Context, workers int) {
+	c.factory.WithSync(c.Sync).ToController(c.name, c.recorder.WithComponentSuffix(strings.ToLower(c.name)+"-deployment-controller-")).Run(ctx, workers)
 }
 
 func (c *DeploymentController) Name() string {
 	return c.name
 }
 
-func (c *DeploymentController) sync(ctx context.Context, syncContext factory.SyncContext) error {
+func (c *DeploymentController) WithChecks(checks ...CustomCheckFunc) *DeploymentController {
+	c.checks = checks
+	return c
+}
+
+func (c *DeploymentController) Sync(ctx context.Context, syncContext factory.SyncContext) error {
+	if len(c.checks) > 0 {
+		for _, check := range c.checks {
+			if ok, msg := check(); !ok {
+				return fmt.Errorf("Controller check failed: %s", msg)
+			} else {
+				klog.V(6).Infof("Controller check passed: %s", msg)
+			}
+		}
+	}
+
 	opSpec, opStatus, _, err := c.operatorClient.GetOperatorState()
 	if apierrors.IsNotFound(err) && management.IsOperatorRemovable() {
 		return nil
