@@ -250,7 +250,7 @@ func withCustomLabels(infraLister configlisters.InfrastructureLister) dc.Deploym
 		labels = append(labels, fmt.Sprintf(ocpDefaultLabelFmt, infra.Status.InfrastructureName))
 		labelsStr := strings.Join(labels, ",")
 		labelsArg := fmt.Sprintf("--extra-labels=%s", labelsStr)
-		klog.V(1).Infof("withCustomLabels: adding extra-labels arg to driver with value %s", labelsStr)
+		klog.V(6).Infof("withCustomLabels: adding extra-labels arg to driver with value %s", labelsStr)
 
 		for i := range deployment.Spec.Template.Spec.Containers {
 			container := &deployment.Spec.Template.Spec.Containers[i]
