@@ -33,6 +33,7 @@ var defaultCacheSyncTimeout = 10 * time.Minute
 // CSIControllerSet contains a set of controllers that are usually used to deploy CSI Drivers.
 type CSIControllerSet struct {
 	logLevelController                   factory.Controller
+	progressingTimeoutController         factory.Controller
 	managementStateController            factory.Controller
 	staticResourcesController            factory.Controller
 	conditionalStaticResourcesController factory.Controller
@@ -51,6 +52,7 @@ type CSIControllerSet struct {
 func (c *CSIControllerSet) Run(ctx context.Context, workers int) {
 	for _, ctrl := range []factory.Controller{
 		c.logLevelController,
+		c.progressingTimeoutController,
 		c.managementStateController,
 		c.staticResourcesController,
 		c.conditionalStaticResourcesController,
@@ -74,6 +76,11 @@ func (c *CSIControllerSet) Run(ctx context.Context, workers int) {
 // WithLogLevelController returns a *ControllerSet with a log level controller initialized.
 func (c *CSIControllerSet) WithLogLevelController() *CSIControllerSet {
 	c.logLevelController = loglevel.NewClusterOperatorLoggingController(c.operatorClient, c.eventRecorder)
+	return c
+}
+
+func (c *CSIControllerSet) WithControllerTimeout(name string, timeout time.Duration) *CSIControllerSet {
+	c.progressingTimeoutController = deploymentcontroller.NewTimeoutController(c.operatorClient, name, timeout, c.eventRecorder)
 	return c
 }
 

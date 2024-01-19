@@ -52,6 +52,8 @@ const (
 	// ocpDefaultLabelFmt is the format string for the default label
 	// added to the OpenShift created GCP resources.
 	ocpDefaultLabelFmt = "kubernetes-io-cluster-%s=owned"
+
+	defaultControllerTimeout = 10 * time.Minute
 )
 
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
@@ -208,6 +210,9 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeInformersForNamespaces.InformersFor(""),
 		operatorInformers,
 		getKMSKeyHook(operatorInformers.Operator().V1().ClusterCSIDrivers().Lister()),
+	).WithControllerTimeout(
+		"GCPPDDriverControllerServiceController",
+		defaultControllerTimeout,
 	)
 
 	if err != nil {
@@ -250,7 +255,7 @@ func withCustomLabels(infraLister configlisters.InfrastructureLister) dc.Deploym
 		labels = append(labels, fmt.Sprintf(ocpDefaultLabelFmt, infra.Status.InfrastructureName))
 		labelsStr := strings.Join(labels, ",")
 		labelsArg := fmt.Sprintf("--extra-labels=%s", labelsStr)
-		klog.V(1).Infof("withCustomLabels: adding extra-labels arg to driver with value %s", labelsStr)
+		klog.V(6).Infof("withCustomLabels: adding extra-labels arg to driver with value %s", labelsStr)
 
 		for i := range deployment.Spec.Template.Spec.Containers {
 			container := &deployment.Spec.Template.Spec.Containers[i]
