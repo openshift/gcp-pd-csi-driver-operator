@@ -34,13 +34,13 @@ import (
 
 const (
 	// Operand and operator run in the same namespace
-	defaultNamespace   = "openshift-cluster-csi-drivers"
+	DefaultNamespace   = "openshift-cluster-csi-drivers"
 	operatorName       = "gcp-pd-csi-driver-operator"
 	operandName        = "gcp-pd-csi-driver"
 	trustedCAConfigMap = "gcp-pd-csi-driver-trusted-ca-bundle"
 	resync             = 20 * time.Minute
 
-	cloudCredSecretName   = "gcp-pd-cloud-credentials"
+	CloudCredSecretName   = "gcp-pd-cloud-credentials"
 	metricsCertSecretName = "gcp-pd-csi-driver-controller-metrics-serving-cert"
 
 	diskEncryptionKMSKey  = "disk-encryption-kms-key"
@@ -57,9 +57,9 @@ const (
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
 	// Create core clientset and informers
 	kubeClient := kubeclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
-	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
-	secretInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().Secrets()
-	configMapInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().ConfigMaps()
+	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, DefaultNamespace, "")
+	secretInformer := kubeInformersForNamespaces.InformersFor(DefaultNamespace).Core().V1().Secrets()
+	configMapInformer := kubeInformersForNamespaces.InformersFor(DefaultNamespace).Core().V1().ConfigMaps()
 	nodeInformer := kubeInformersForNamespaces.InformersFor("").Core().V1().Nodes()
 
 	// Create config clientset and informer. This is used to get the cluster ID
@@ -153,7 +153,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		assets.ReadFile,
 		"controller.yaml",
 		kubeClient,
-		kubeInformersForNamespaces.InformersFor(defaultNamespace),
+		kubeInformersForNamespaces.InformersFor(DefaultNamespace),
 		configInformers,
 		[]factory.Informer{
 			nodeInformer.Informer(),
@@ -163,17 +163,17 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		},
 		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
 		csidrivercontrollerservicecontroller.WithCABundleDeploymentHook(
-			defaultNamespace,
+			DefaultNamespace,
 			trustedCAConfigMap,
 			configMapInformer,
 		),
 		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(
-			defaultNamespace,
-			cloudCredSecretName,
+			DefaultNamespace,
+			CloudCredSecretName,
 			secretInformer,
 		),
 		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(
-			defaultNamespace,
+			DefaultNamespace,
 			metricsCertSecretName,
 			secretInformer,
 		),
@@ -184,11 +184,11 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		assets.ReadFile,
 		"node.yaml",
 		kubeClient,
-		kubeInformersForNamespaces.InformersFor(defaultNamespace),
+		kubeInformersForNamespaces.InformersFor(DefaultNamespace),
 		[]factory.Informer{configMapInformer.Informer()},
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
 		csidrivernodeservicecontroller.WithCABundleDaemonSetHook(
-			defaultNamespace,
+			DefaultNamespace,
 			trustedCAConfigMap,
 			configMapInformer,
 		),
