@@ -1,8 +1,8 @@
 module github.com/openshift/gcp-pd-csi-driver-operator
 
-go 1.21
+go 1.22
 
-toolchain go1.21.7
+toolchain go1.22.1
 
 require (
 	github.com/google/go-cmp v0.6.0
