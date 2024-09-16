@@ -6,7 +6,7 @@ toolchain go1.22.5
 
 require (
 	github.com/google/go-cmp v0.6.0
-	github.com/openshift/api v0.0.0-20240715171821-e9f09d21bcb5
+	github.com/openshift/api v0.0.0-20240906165951-d73f2e11e0be
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
 	github.com/openshift/library-go v0.0.0-20240715191351-e0aa70d55678
@@ -114,3 +114,8 @@ require (
 )
 
 replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt v3.2.1+incompatible
+
+replace (
+	github.com/openshift/api => github.com/deads2k/api v0.0.0-20240916185742-2e12b67f501b
+	github.com/openshift/client-go => github.com/deads2k/client-go-1 v0.0.0-20240916191609-e7072cc84fbd
+)
