@@ -29,8 +29,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/deads2k/api v0.0.0-20240916185742-2e12b67f501b h1:hWd+IYNNRJZLdBgulfjUyKOK3cYplGTY5Rz/8NOtbaw=
-github.com/deads2k/api v0.0.0-20240916185742-2e12b67f501b/go.mod h1:OOh6Qopf21pSzqNVCB5gomomBXb8o5sGKZxG2KNpaXM=
+github.com/deads2k/api v0.0.0-20240916210056-f0baae924b7c h1:uox87qUGjDOI3oy8M59sZZYjJvRaF07ZytX9bx5izz0=
+github.com/deads2k/api v0.0.0-20240916210056-f0baae924b7c/go.mod h1:OOh6Qopf21pSzqNVCB5gomomBXb8o5sGKZxG2KNpaXM=
 github.com/deads2k/client-go-1 v0.0.0-20240916191609-e7072cc84fbd h1:bDG0sSxgzORr7iOetGvcKLM6v+MK7QtfJihhwk8CIjE=
 github.com/deads2k/client-go-1 v0.0.0-20240916191609-e7072cc84fbd/go.mod h1:36GkZ6F7MJu8OtL5v1Rair//K/q3ptHJe9f41lb14O8=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
