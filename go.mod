@@ -6,10 +6,10 @@ toolchain go1.22.5
 
 require (
 	github.com/google/go-cmp v0.6.0
-	github.com/openshift/api v0.0.0-20240715171821-e9f09d21bcb5
+	github.com/openshift/api v0.0.0-20240926031850-46b94866c024
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
-	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
-	github.com/openshift/library-go v0.0.0-20240715191351-e0aa70d55678
+	github.com/openshift/client-go v0.0.0-20240925210910-aaed17e719c5
+	github.com/openshift/library-go v0.0.0-20240926163055-2402ef326fc1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/spf13/cobra v1.8.1
 	k8s.io/api v0.30.2
@@ -30,7 +30,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/felixge/fgprof v0.9.4 // indirect
