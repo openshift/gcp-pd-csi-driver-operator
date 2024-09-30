@@ -6,10 +6,10 @@ toolchain go1.22.5
 
 require (
 	github.com/google/go-cmp v0.6.0
-	github.com/openshift/api v0.0.0-20240926031850-46b94866c024
+	github.com/openshift/api v0.0.0-20240926211938-f89ab92f1597
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/client-go v0.0.0-20240925210910-aaed17e719c5
-	github.com/openshift/library-go v0.0.0-20240926163055-2402ef326fc1
+	github.com/openshift/library-go v0.0.0-20240930100943-758dfb5b4c57
 	github.com/prometheus/client_golang v1.18.0
 	github.com/spf13/cobra v1.8.1
 	k8s.io/api v0.30.2
