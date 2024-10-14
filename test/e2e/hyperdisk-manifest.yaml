@@ -11,7 +11,10 @@ DriverInfo:
     debug:
     nouid32:
   SupportedSizeRange:
-    Min: 4Gi
+    # Smaller volumes cannot pass resize tests due to IOPS. 
+    # For example, 4Gi volume gets 2000 IOPS max and it cannot be resized to 5Gi that needs 2500 as minimum.
+    # 6Gi gets 3000 IOPS, which is the minimum for any bigger volume.
+    Min: 6Gi 
     Max: 64Ti
   TopologyKeys:
     - topology.gke.io/zone
