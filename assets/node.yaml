@@ -40,6 +40,7 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=${LOG_LEVEL}
+            - --enable-storage-pools=true
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
