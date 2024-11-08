@@ -8,3 +8,4 @@ spec:
   selector:
     matchLabels:
       app: gcp-pd-csi-driver-controller
+  unhealthyEvictionPolicy: AlwaysAllow
