@@ -40,8 +40,6 @@ type Interface interface {
 	MachineConfigurations() MachineConfigurationInformer
 	// Networks returns a NetworkInformer.
 	Networks() NetworkInformer
-	// OLMs returns a OLMInformer.
-	OLMs() OLMInformer
 	// OpenShiftAPIServers returns a OpenShiftAPIServerInformer.
 	OpenShiftAPIServers() OpenShiftAPIServerInformer
 	// OpenShiftControllerManagers returns a OpenShiftControllerManagerInformer.
@@ -145,11 +143,6 @@ func (v *version) MachineConfigurations() MachineConfigurationInformer {
 // Networks returns a NetworkInformer.
 func (v *version) Networks() NetworkInformer {
 	return &networkInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// OLMs returns a OLMInformer.
-func (v *version) OLMs() OLMInformer {
-	return &oLMInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // OpenShiftAPIServers returns a OpenShiftAPIServerInformer.
