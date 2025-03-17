@@ -17,6 +17,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/clock"
 
+	configv1 "github.com/openshift/api/config/v1"
 	opv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
@@ -193,6 +194,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		csidrivercontrollerservicecontroller.WithReplicasHook(configInformers),
 		withCustomLabels(infraInformer.Lister()),
 		withCustomResourceTags(infraInformer.Lister()),
+		withCustomEndpoints(infraInformer.Lister()),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
 		assets.ReadFile,
@@ -311,6 +313,47 @@ func withCustomResourceTags(infraLister configlisters.InfrastructureLister) dc.D
 				continue
 			}
 			container.Args = append(container.Args, tagsArg)
+		}
+		return nil
+	}
+}
+
+// withCustomEndpoints adds gcp endpoint overrides from infrastructure.status.platformStatus.gcp.ServiceEndpoints to the
+// driver command line. The intention is to provide a list of all service endpoints, but the current implementation
+// of the driver accepts a specific endpoint; --compute-endpoint=<endpoint>
+func withCustomEndpoints(infraLister configlisters.InfrastructureLister) dc.DeploymentHookFunc {
+	return func(spec *opv1.OperatorSpec, deployment *appsv1.Deployment) error {
+		infra, err := infraLister.Get(globalInfrastructureName)
+		if err != nil {
+			return fmt.Errorf("withCustomEndpoints: failed to fetch global Infrastructure object: %w", err)
+		}
+
+		computeEndpoint := ""
+		if infra.Status.PlatformStatus != nil &&
+			infra.Status.PlatformStatus.GCP != nil &&
+			infra.Status.PlatformStatus.GCP.ServiceEndpoints != nil {
+			for _, endpoint := range infra.Status.PlatformStatus.GCP.ServiceEndpoints {
+				if endpoint.Name == configv1.GCPServiceEndpointNameCompute {
+					computeEndpoint = endpoint.URL
+					break
+				}
+			}
+		}
+
+		if computeEndpoint == "" {
+			klog.V(5).Infof("withCustomEndpoints: service endpoints not configured, no changes made to driver args")
+			return nil
+		}
+
+		endpointsArg := fmt.Sprintf("--compute-endpoint=%s", computeEndpoint)
+		klog.V(5).Infof("withCustomEndpoints: adding endpoints arg to driver with value %s", endpointsArg)
+
+		for i := range deployment.Spec.Template.Spec.Containers {
+			container := &deployment.Spec.Template.Spec.Containers[i]
+			if container.Name != "csi-driver" {
+				continue
+			}
+			container.Args = append(container.Args, endpointsArg)
 		}
 		return nil
 	}
