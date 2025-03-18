@@ -84,6 +84,8 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
         - name: csi-provisioner
           image: ${PROVISIONER_IMAGE}
           imagePullPolicy: IfNotPresent
@@ -111,6 +113,8 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
           # kube-rbac-proxy for external-provisioner container.
           # Provides https proxy for http-based external-provisioner metrics.
         - name: provisioner-kube-rbac-proxy
@@ -132,6 +136,8 @@ spec:
             requests:
               memory: 20Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
           - mountPath: /etc/tls/private
@@ -159,6 +165,8 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
         - name: attacher-kube-rbac-proxy
           args:
           - --secure-listen-address=0.0.0.0:9203
@@ -178,6 +186,8 @@ spec:
             requests:
               memory: 20Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
           - mountPath: /etc/tls/private
@@ -204,6 +214,8 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
         - name: resizer-kube-rbac-proxy
           args:
           - --secure-listen-address=0.0.0.0:9204
@@ -223,6 +235,8 @@ spec:
             requests:
               memory: 20Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
           - mountPath: /etc/tls/private
@@ -250,6 +264,8 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
         - name: snapshotter-kube-rbac-proxy
           args:
           - --secure-listen-address=0.0.0.0:9205
@@ -269,6 +285,8 @@ spec:
             requests:
               memory: 20Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
           - mountPath: /etc/tls/private
@@ -289,6 +307,8 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+          securityContext:
+            readOnlyRootFilesystem: true
       volumes:
         - name: socket-dir
           emptyDir: {}
