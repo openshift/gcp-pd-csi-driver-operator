@@ -271,3 +271,157 @@ func TestWithCustomResourceTags(t *testing.T) {
 		})
 	}
 }
+
+func TestWithAPIEndpointOverrides(t *testing.T) {
+	infraObj := &v1.Infrastructure{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+		Status: v1.InfrastructureStatus{
+			InfrastructureName: "test-sgdh7",
+			PlatformStatus: &v1.PlatformStatus{
+				GCP: &v1.GCPPlatformStatus{
+					ProjectID: "test",
+					Region:    "test",
+				},
+			},
+		},
+	}
+
+	tmplDeployObj := &appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "csi-driver",
+							Image: "example.io/example-csi-driver",
+							Args: []string{
+								"--endpoint=$(CSI_ENDPOINT)",
+								"--logtostderr",
+								"--v=2",
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+									Value: "/etc/cloud-sa/service_account.json",
+								},
+								{
+									Name:  "CSI_ENDPOINT",
+									Value: "unix:///var/lib/csi/sockets/pluginproxy/csi.sock",
+								},
+							},
+						},
+						{
+							Name:  "test-driver",
+							Image: "example.io/example-test-driver",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		endpoints     []v1.GCPServiceEndpoint
+		expArgList    string
+		createInfraCR bool
+		wantErr       bool
+	}{
+		{
+			name:          "overrides not configured",
+			endpoints:     []v1.GCPServiceEndpoint{},
+			expArgList:    "",
+			createInfraCR: true,
+			wantErr:       false,
+		},
+		{
+			name: "endpoint overrides configured with compute",
+			endpoints: []v1.GCPServiceEndpoint{
+				{
+					Name: v1.GCPServiceEndpointNameCompute,
+					URL:  "https://compute-example.googleapis.com",
+				},
+				{
+					Name: v1.GCPServiceEndpointNameStorage,
+					URL:  "https://storage-example.googleapis.com",
+				},
+			},
+			expArgList:    "--compute-endpoint=https://compute-example.googleapis.com",
+			createInfraCR: true,
+			wantErr:       false,
+		},
+		{
+			name: "endpoint overrides configured with multiple compute",
+			endpoints: []v1.GCPServiceEndpoint{
+				{
+					Name: v1.GCPServiceEndpointNameCompute,
+					URL:  "https://compute-example1.googleapis.com",
+				},
+				{
+					Name: v1.GCPServiceEndpointNameCompute,
+					URL:  "https://compute-example2.googleapis.com",
+				},
+			},
+			expArgList:    "--compute-endpoint=https://compute-example1.googleapis.com",
+			createInfraCR: true,
+			wantErr:       false,
+		},
+		{
+			name: "endpoint overrides configured without compute",
+			endpoints: []v1.GCPServiceEndpoint{
+				{
+					Name: v1.GCPServiceEndpointNameDNS,
+					URL:  "https://dns-example.googleapis.com",
+				},
+				{
+					Name: v1.GCPServiceEndpointNameStorage,
+					URL:  "https://storage-example.googleapis.com",
+				},
+			},
+			expArgList:    "",
+			createInfraCR: true,
+			wantErr:       false,
+		},
+		{
+			name:          "Infrastructure CR does not exist",
+			endpoints:     []v1.GCPServiceEndpoint{},
+			expArgList:    "",
+			createInfraCR: false,
+			wantErr:       true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			objs := make([]runtime.Object, 0)
+			if test.createInfraCR {
+				infraObj.Status.PlatformStatus.GCP.ServiceEndpoints = test.endpoints
+				objs = append(objs, infraObj)
+			}
+			configClient := fakeconfig.NewSimpleClientset(objs...)
+			configInformerFactory := configinformers.NewSharedInformerFactory(configClient, 0)
+			if test.createInfraCR {
+				configInformerFactory.Config().V1().Infrastructures().Informer().GetIndexer().Add(infraObj)
+			}
+
+			deployment := tmplDeployObj.DeepCopy()
+			updDeployment := tmplDeployObj.DeepCopy()
+			if test.expArgList != "" {
+				updDeployment.Spec.Template.Spec.Containers[0].Args = append(
+					updDeployment.Spec.Template.Spec.Containers[0].Args,
+					test.expArgList,
+				)
+			}
+
+			err := withCustomEndpoints(configInformerFactory.Config().V1().Infrastructures().Lister())(nil, deployment)
+			if (err != nil) != test.wantErr {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if !equality.Semantic.DeepEqual(deployment, updDeployment) {
+				t.Errorf("unexpected deployment want: %+v got: %+v", updDeployment, deployment)
+			}
+		})
+	}
+}
