@@ -3,6 +3,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	opinformers "github.com/openshift/client-go/operator/informers/externalversions"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/controller/factory"
+	"github.com/openshift/library-go/pkg/operator/configobserver/featuregates"
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivercontrollerservicecontroller"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
@@ -57,6 +59,8 @@ const (
 	// ocpDefaultLabelFmt is the format string for the default label
 	// added to the OpenShift created GCP resources.
 	ocpDefaultLabelFmt = "kubernetes-io-cluster-%s=owned"
+
+	operatorImageVersionEnvVarName = "OPERATOR_IMAGE_VERSION"
 )
 
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
@@ -75,6 +79,36 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	apiExtClient, err := apiextclient.NewForConfig(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	if err != nil {
 		return err
+	}
+
+	// We need featuregate accessor made available to the operator pods
+	desiredVersion := os.Getenv(operatorImageVersionEnvVarName)
+	missingVersion := "0.0.1-snapshot"
+
+	featureGateAccessor := featuregates.NewFeatureGateAccess(
+		desiredVersion,
+		missingVersion,
+		configInformers.Config().V1().ClusterVersions(),
+		configInformers.Config().V1().FeatureGates(),
+		controllerConfig.EventRecorder,
+	)
+	go featureGateAccessor.Run(ctx)
+	go configInformers.Start(ctx.Done())
+
+	var featureGates featuregates.FeatureGate
+
+	select {
+	case <-featureGateAccessor.InitialFeatureGatesObserved():
+		featureGates, _ = featureGateAccessor.CurrentFeatureGates()
+		klog.Info("FeatureGates initialized", "knownFeatures", featureGates.KnownFeatures())
+	case <-time.After(1 * time.Minute):
+		klog.Error(nil, "timed out waiting for FeatureGate detection")
+		return fmt.Errorf("timed out waiting for FeatureGate detection")
+	}
+
+	VolumeAttributesClassEnabled := false
+	if featureGates.Enabled(configv1.FeatureGateName("VolumeAttributesClass")) {
+		VolumeAttributesClassEnabled = true
 	}
 
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
@@ -130,6 +164,8 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 			"rbac/node_privileged_binding.yaml",
 			"rbac/main_provisioner_binding.yaml",
 			"rbac/volumesnapshot_reader_provisioner_binding.yaml",
+			"rbac/volumeattributesclass_reader_provisioner_binding.yaml",
+			"rbac/volumeattributesclass_reader_resizer_binding.yaml",
 			"rbac/main_resizer_binding.yaml",
 			"rbac/storageclass_reader_resizer_binding.yaml",
 			"rbac/main_snapshotter_binding.yaml",
@@ -195,6 +231,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		withCustomLabels(infraInformer.Lister()),
 		withCustomResourceTags(infraInformer.Lister()),
 		withCustomEndpoints(infraInformer.Lister()),
+		withVolumeAttributesClass(VolumeAttributesClassEnabled),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
 		assets.ReadFile,
@@ -388,4 +425,30 @@ func extractOperatorStatus(obj *unstructured.Unstructured, fieldManager string) 
 		return nil, nil
 	}
 	return &ret.Status.OperatorStatusApplyConfiguration, nil
+}
+
+// withVolumeAttributesClass adds feature-gate VolumeAttributesClass=true (VAC) argument to all clusters
+// when the VAC feature is enabled
+func withVolumeAttributesClass(VolumeAttributesClassEnabled bool) dc.DeploymentHookFunc {
+	return func(_ *opv1.OperatorSpec, deployment *appsv1.Deployment) error {
+		if !VolumeAttributesClassEnabled {
+			return nil
+		}
+
+		newArg := "--feature-gates=VolumeAttributesClass=true"
+		for i := range deployment.Spec.Template.Spec.Containers {
+			container := &deployment.Spec.Template.Spec.Containers[i]
+			if container.Name == "csi-provisioner" || container.Name == "csi-resizer" {
+				container.Args = append(container.Args, newArg)
+			} else if container.Name == "csi-driver" {
+				// add default disks that support dynamic provisioning to csi-driver
+				container.Args = append(
+					container.Args,
+					"--supports-dynamic-throughput-provisioning=hyperdisk-balanced,hyperdisk-throughput,hyperdisk-ml",
+					"--supports-dynamic-iops-provisioning=hyperdisk-balanced,hyperdisk-extreme",
+				)
+			}
+		}
+		return nil
+	}
 }
