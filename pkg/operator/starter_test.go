@@ -415,7 +415,7 @@ func TestWithAPIEndpointOverrides(t *testing.T) {
 				)
 			}
 
-			err := withCustomEndpoints(true, configInformerFactory.Config().V1().Infrastructures().Lister())(nil, deployment)
+			err := withCustomEndpoints(configInformerFactory.Config().V1().Infrastructures().Lister())(nil, deployment)
 			if (err != nil) != test.wantErr {
 				t.Errorf("unexpected error: %v", err)
 			}

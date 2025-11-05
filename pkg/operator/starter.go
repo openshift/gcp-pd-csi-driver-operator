@@ -111,8 +111,6 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		VolumeAttributesClassEnabled = true
 	}
 
-	gcpCustomEndpointsEnabled := featureGates.Enabled(configv1.FeatureGateName("GCPCustomAPIEndpointsInstall"))
-
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
 	gvr := opv1.SchemeGroupVersion.WithResource("clustercsidrivers")
 	gvk := opv1.SchemeGroupVersion.WithKind("ClusterCSIDriver")
@@ -232,7 +230,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		csidrivercontrollerservicecontroller.WithReplicasHook(configInformers),
 		withCustomLabels(infraInformer.Lister()),
 		withCustomResourceTags(infraInformer.Lister()),
-		withCustomEndpoints(gcpCustomEndpointsEnabled, infraInformer.Lister()),
+		withCustomEndpoints(infraInformer.Lister()),
 		withVolumeAttributesClass(VolumeAttributesClassEnabled),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
@@ -360,13 +358,8 @@ func withCustomResourceTags(infraLister configlisters.InfrastructureLister) dc.D
 // withCustomEndpoints adds gcp endpoint overrides from infrastructure.status.platformStatus.gcp.ServiceEndpoints to the
 // driver command line. The intention is to provide a list of all service endpoints, but the current implementation
 // of the driver accepts a specific endpoint; --compute-endpoint=<endpoint>
-func withCustomEndpoints(gcpCustomEndpointsEnabled bool, infraLister configlisters.InfrastructureLister) dc.DeploymentHookFunc {
+func withCustomEndpoints(infraLister configlisters.InfrastructureLister) dc.DeploymentHookFunc {
 	return func(spec *opv1.OperatorSpec, deployment *appsv1.Deployment) error {
-		if !gcpCustomEndpointsEnabled {
-			klog.V(5).Infof("withCustomEndpoints: GCPCustomAPIEndpointsInstall is not enabled, skipping endpoint override check")
-			return nil
-		}
-
 		infra, err := infraLister.Get(globalInfrastructureName)
 		if err != nil {
 			return fmt.Errorf("withCustomEndpoints: failed to fetch global Infrastructure object: %w", err)
