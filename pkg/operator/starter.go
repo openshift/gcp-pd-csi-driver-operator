@@ -111,8 +111,6 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		VolumeAttributesClassEnabled = true
 	}
 
-	gcpCustomEndpointsEnabled := featureGates.Enabled(configv1.FeatureGateName("GCPCustomAPIEndpointsInstall"))
-
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
 	gvr := opv1.SchemeGroupVersion.WithResource("clustercsidrivers")
 	gvk := opv1.SchemeGroupVersion.WithKind("ClusterCSIDriver")
@@ -232,7 +230,6 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		csidrivercontrollerservicecontroller.WithReplicasHook(configInformers),
 		withCustomLabels(infraInformer.Lister()),
 		withCustomResourceTags(infraInformer.Lister()),
-		withCustomEndpoints(gcpCustomEndpointsEnabled, infraInformer.Lister()),
 		withVolumeAttributesClass(VolumeAttributesClassEnabled),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
@@ -352,52 +349,6 @@ func withCustomResourceTags(infraLister configlisters.InfrastructureLister) dc.D
 				continue
 			}
 			container.Args = append(container.Args, tagsArg)
-		}
-		return nil
-	}
-}
-
-// withCustomEndpoints adds gcp endpoint overrides from infrastructure.status.platformStatus.gcp.ServiceEndpoints to the
-// driver command line. The intention is to provide a list of all service endpoints, but the current implementation
-// of the driver accepts a specific endpoint; --compute-endpoint=<endpoint>
-func withCustomEndpoints(gcpCustomEndpointsEnabled bool, infraLister configlisters.InfrastructureLister) dc.DeploymentHookFunc {
-	return func(spec *opv1.OperatorSpec, deployment *appsv1.Deployment) error {
-		if !gcpCustomEndpointsEnabled {
-			klog.V(5).Infof("withCustomEndpoints: GCPCustomAPIEndpointsInstall is not enabled, skipping endpoint override check")
-			return nil
-		}
-
-		infra, err := infraLister.Get(globalInfrastructureName)
-		if err != nil {
-			return fmt.Errorf("withCustomEndpoints: failed to fetch global Infrastructure object: %w", err)
-		}
-
-		computeEndpoint := ""
-		if infra.Status.PlatformStatus != nil &&
-			infra.Status.PlatformStatus.GCP != nil &&
-			infra.Status.PlatformStatus.GCP.ServiceEndpoints != nil {
-			for _, endpoint := range infra.Status.PlatformStatus.GCP.ServiceEndpoints {
-				if endpoint.Name == configv1.GCPServiceEndpointNameCompute {
-					computeEndpoint = endpoint.URL
-					break
-				}
-			}
-		}
-
-		if computeEndpoint == "" {
-			klog.V(5).Infof("withCustomEndpoints: service endpoints not configured, no changes made to driver args")
-			return nil
-		}
-
-		endpointsArg := fmt.Sprintf("--compute-endpoint=%s", computeEndpoint)
-		klog.V(5).Infof("withCustomEndpoints: adding endpoints arg to driver with value %s", endpointsArg)
-
-		for i := range deployment.Spec.Template.Spec.Containers {
-			container := &deployment.Spec.Template.Spec.Containers[i]
-			if container.Name != "csi-driver" {
-				continue
-			}
-			container.Args = append(container.Args, endpointsArg)
 		}
 		return nil
 	}
