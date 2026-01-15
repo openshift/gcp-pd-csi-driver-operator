@@ -2,6 +2,8 @@ StorageClass:
   FromExistingClassName: hyperdisk-balanced
 SnapshotClass:
   FromName: true
+VolumeAttributesClass:
+  FromFile: volumeattributesclass.yaml
 DriverInfo:
   Name: pd.csi.storage.gke.io
   SupportedFsType:
