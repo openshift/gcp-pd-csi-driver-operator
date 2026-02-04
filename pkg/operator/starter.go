@@ -184,6 +184,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		assets.ReadFile,
 		[]string{
 			"volumesnapshotclass.yaml",
+			"volumesnapshotclass_images.yaml",
 		},
 		// Only install when CRD exists.
 		func() bool {
