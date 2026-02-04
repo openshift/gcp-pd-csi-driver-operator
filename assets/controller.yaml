@@ -54,6 +54,7 @@ spec:
             - --logtostderr
             - --v=${LOG_LEVEL}
             - --enable-storage-pools=true
+            - --allow-hdha-provisioning=true
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: "/etc/cloud-sa/service_account.json"
