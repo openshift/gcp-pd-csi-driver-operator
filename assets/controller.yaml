@@ -55,6 +55,8 @@ spec:
             - --v=${LOG_LEVEL}
             - --enable-storage-pools=true
             - --allow-hdha-provisioning=true
+            - --supports-dynamic-throughput-provisioning=hyperdisk-balanced,hyperdisk-throughput,hyperdisk-ml
+            - --supports-dynamic-iops-provisioning=hyperdisk-balanced,hyperdisk-extreme
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: "/etc/cloud-sa/service_account.json"

@@ -18,7 +18,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/clock"
 
-	configv1 "github.com/openshift/api/config/v1"
 	opv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
@@ -104,11 +103,6 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	case <-time.After(1 * time.Minute):
 		klog.Error(nil, "timed out waiting for FeatureGate detection")
 		return fmt.Errorf("timed out waiting for FeatureGate detection")
-	}
-
-	VolumeAttributesClassEnabled := false
-	if featureGates.Enabled(configv1.FeatureGateName("VolumeAttributesClass")) {
-		VolumeAttributesClassEnabled = true
 	}
 
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
@@ -231,7 +225,6 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		csidrivercontrollerservicecontroller.WithReplicasHook(configInformers),
 		withCustomLabels(infraInformer.Lister()),
 		withCustomResourceTags(infraInformer.Lister()),
-		withVolumeAttributesClass(VolumeAttributesClassEnabled),
 	).WithCSIDriverNodeService(
 		"GCPPDDriverNodeServiceController",
 		assets.ReadFile,
@@ -384,30 +377,4 @@ func extractOperatorStatus(obj *unstructured.Unstructured, fieldManager string) 
 		return nil, nil
 	}
 	return &ret.Status.OperatorStatusApplyConfiguration, nil
-}
-
-// withVolumeAttributesClass adds feature-gate VolumeAttributesClass=true (VAC) argument to all clusters
-// when the VAC feature is enabled
-func withVolumeAttributesClass(VolumeAttributesClassEnabled bool) dc.DeploymentHookFunc {
-	return func(_ *opv1.OperatorSpec, deployment *appsv1.Deployment) error {
-		if !VolumeAttributesClassEnabled {
-			return nil
-		}
-
-		newArg := "--feature-gates=VolumeAttributesClass=true"
-		for i := range deployment.Spec.Template.Spec.Containers {
-			container := &deployment.Spec.Template.Spec.Containers[i]
-			if container.Name == "csi-provisioner" || container.Name == "csi-resizer" {
-				container.Args = append(container.Args, newArg)
-			} else if container.Name == "csi-driver" {
-				// add default disks that support dynamic provisioning to csi-driver
-				container.Args = append(
-					container.Args,
-					"--supports-dynamic-throughput-provisioning=hyperdisk-balanced,hyperdisk-throughput,hyperdisk-ml",
-					"--supports-dynamic-iops-provisioning=hyperdisk-balanced,hyperdisk-extreme",
-				)
-			}
-		}
-		return nil
-	}
 }
