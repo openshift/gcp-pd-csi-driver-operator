@@ -8,3 +8,6 @@ rules:
     resourceNames: ["privileged"]
     resources: ["securitycontextconstraints"]
     verbs: ["use"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
