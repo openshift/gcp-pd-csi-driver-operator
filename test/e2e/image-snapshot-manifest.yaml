@@ -1,7 +1,7 @@
 StorageClass:
   FromExistingClassName: ssd-csi
 SnapshotClass:
-  FromName: true
+  FromFile: images-volumesnapshotclass.yaml
 DriverInfo:
   Name: pd.csi.storage.gke.io
   SupportedFsType:
@@ -33,5 +33,9 @@ DriverInfo:
   VolumeSnapshotStressTestOptions:
     NumPods: 2
     NumSnapshots: 5
+# Image snapshots: longer readyToUse, restore bind, and delete vs default 5m.
 Timeouts:
-  DataSourceProvision: 10m
+  ClaimProvision: 15m
+  DataSourceProvision: 15m
+  SnapshotCreate: 15m
+  SnapshotDelete: 15m
