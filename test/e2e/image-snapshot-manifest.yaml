@@ -1,7 +1,7 @@
 StorageClass:
   FromExistingClassName: ssd-csi
 SnapshotClass:
-  FromName: true
+  FromExistingClassName: csi-gce-pd-vsc-images
 DriverInfo:
   Name: pd.csi.storage.gke.io
   SupportedFsType:
