@@ -31,6 +31,45 @@ spec:
         - operator: Exists
       nodeSelector:
         kubernetes.io/os: linux
+      initContainers:
+        - name: wait-for-api
+          image: ${NODE_DRIVER_REGISTRAR_IMAGE}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Waiting for Kubernetes API to be ready..."
+              KUBE_API_SERVER="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"
+              SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              CA_CERT="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+              RETRY_COUNT=0
+              MAX_RETRIES=300 # ~10 minutes of waiting for API to be ready
+
+              until [ ${RETRY_COUNT} -ge ${MAX_RETRIES} ]; do
+                if curl -sf --max-time 3 \
+                  -H "Authorization: Bearer ${SA_TOKEN}" \
+                  --cacert "${CA_CERT}" \
+                  "${KUBE_API_SERVER}/readyz" > /dev/null 2>&1; then
+                  echo "Kubernetes API is ready"
+                  exit 0
+                fi
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                sleep 2
+              done
+
+              echo "ERROR: Kubernetes API did not become ready within timeout"
+              exit 1
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              memory: 10Mi
+              cpu: 1m
+            limits:
+              memory: 20Mi
+              cpu: 10m
       containers:
         - name: csi-driver
           securityContext:
