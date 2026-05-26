@@ -134,11 +134,35 @@ spec:
             readOnlyRootFilesystem: true
           image: ${NODE_DRIVER_REGISTRAR_IMAGE}
           imagePullPolicy: IfNotPresent
-          args:
-            - --csi-address=$(ADDRESS)
-            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
-            - --http-endpoint=:10303
-            - --v=${LOG_LEVEL}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Waiting for CSI driver socket to be ready..."
+              SOCKET_PATH="/csi/csi.sock"
+              RETRY_COUNT=0
+              MAX_RETRIES=60  # 2 minutes
+
+              until [ ${RETRY_COUNT} -ge ${MAX_RETRIES} ]; do
+                if [ -S "${SOCKET_PATH}" ]; then
+                  echo "CSI driver socket is ready"
+                  break
+                fi
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                sleep 2
+              done
+
+              if [ ! -S "${SOCKET_PATH}" ]; then
+                echo "ERROR: CSI driver socket did not become ready within timeout"
+                exit 1
+              fi
+
+              exec /csi-node-driver-registrar \
+                --csi-address=$(ADDRESS) \
+                --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH) \
+                --http-endpoint=:10303 \
+                --v=${LOG_LEVEL}
           lifecycle:
             preStop:
               exec:
