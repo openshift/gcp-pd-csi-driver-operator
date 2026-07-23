@@ -146,17 +146,19 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		kubeInformersForNamespaces,
 		assets.ReadFile,
 		[]string{
-			"csidriver.yaml",
+			// SCC prerequisites first: SAs and their SCC bindings must be
+			// applied before the Deployment/DaemonSet controllers create pods.
 			"controller_sa.yaml",
-			"controller_pdb.yaml",
 			"node_sa.yaml",
-			"service.yaml",
-			"cabundle_cm.yaml",
-			"rbac/main_attacher_binding.yaml",
 			"rbac/privileged_role.yaml",
 			"rbac/hostnetwork_role.yaml",
 			"rbac/controller_hostnetwork_binding.yaml",
 			"rbac/node_privileged_binding.yaml",
+			"csidriver.yaml",
+			"controller_pdb.yaml",
+			"service.yaml",
+			"cabundle_cm.yaml",
+			"rbac/main_attacher_binding.yaml",
 			"rbac/main_provisioner_binding.yaml",
 			"rbac/volumesnapshot_reader_provisioner_binding.yaml",
 			"rbac/volumeattributesclass_reader_provisioner_binding.yaml",
@@ -283,6 +285,10 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	go dynamicInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
 	go operatorInformers.Start(ctx.Done())
+
+	if err := ensureSCCPrerequisites(ctx, kubeClient, controllerConfig.EventRecorder); err != nil {
+		return err
+	}
 
 	klog.Info("Starting controllerset")
 	go csiControllerSet.Run(ctx, 1)
