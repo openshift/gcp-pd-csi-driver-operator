@@ -43,6 +43,7 @@ spec:
             - --logtostderr
             - --v=${LOG_LEVEL}
             - --enable-storage-pools=true
+            - --enable-data-cache=true
             - --node-name=$(KUBE_NODE_NAME)
           env:
             - name: CSI_ENDPOINT
