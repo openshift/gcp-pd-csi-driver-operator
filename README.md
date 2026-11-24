@@ -1,5 +1,10 @@
 # gcp-pd-csi-driver-operator
 
+> **Note**: As of OpenShift 5.0, this operator has been moved to the
+> [csi-operator](https://github.com/openshift/csi-operator) monorepo.
+> This repository is kept for older releases only. New development happens in
+> `csi-operator`.
+
 An operator to deploy the [GCP PD CSI Driver](https://github.com/openshift/gcp-pd-csi-driver) in OKD.
 
 This operator is installed by the [cluster-storage-operator](https://github.com/openshift/cluster-storage-operator).
